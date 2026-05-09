@@ -1,79 +1,199 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+
+import {
+  useFieldArray,
+  useForm,
+} from "react-hook-form";
+
+import { tools } from "@/data/tools";
+
+import { generateAudit } from "@/lib/audit-engine";
+
+import Results from "./results";
 
 export default function AuditForm() {
-  const { register, handleSubmit } = useForm();
+  const [auditResult, setAuditResult] =
+    useState<any>(null);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+  } = useForm({
+    defaultValues: {
+      tools: [
+        {
+          tool: "",
+          plan: "",
+          spend: "",
+          seats: "",
+        },
+      ],
+    },
+  });
+
+  const { fields, append, remove } =
+    useFieldArray({
+      control,
+      name: "tools",
+    });
 
   const onSubmit = (data: any) => {
-    console.log(data);
+    const formattedData = {
+      tools: data.tools.map((tool: any) => ({
+        ...tool,
+        spend: Number(tool.spend),
+        seats: Number(tool.seats),
+      })),
+    };
+
+    const result =
+      generateAudit(formattedData);
+
+    console.log(result);
+
+    setAuditResult(result);
 
     localStorage.setItem(
-      "audit-form",
-      JSON.stringify(data)
+      "audit-result",
+      JSON.stringify(result)
     );
   };
 
   return (
-    <section className="py-24 px-6">
-      <div className="max-w-4xl mx-auto border border-zinc-800 bg-zinc-950 rounded-[32px] p-10 md:p-14 shadow-2xl">
-        <div className="text-center">
-          <h2 className="text-5xl font-bold">
-            AI Spend Audit
-          </h2>
+    <>
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto border border-zinc-800 bg-zinc-950 rounded-[32px] p-10 md:p-14">
+          <div className="text-center">
+            <h2 className="text-5xl font-bold">
+              AI Spend Audit
+            </h2>
 
-          <p className="text-zinc-400 mt-4">
-            Enter your current AI tooling setup
-            to discover savings opportunities.
-          </p>
-        </div>
+            <p className="text-zinc-400 mt-4">
+              Analyze your AI tooling stack instantly.
+            </p>
+          </div>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6"
-        >
-          <input
-            {...register("tool")}
-            placeholder="Tool Name"
-            className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4 outline-none focus:border-white transition"
-          />
-
-          <input
-            {...register("plan")}
-            placeholder="Current Plan"
-            className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4 outline-none focus:border-white transition"
-          />
-
-          <input
-            {...register("monthlySpend")}
-            placeholder="Monthly Spend ($)"
-            type="number"
-            className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4 outline-none focus:border-white transition"
-          />
-
-          <input
-            {...register("teamSize")}
-            placeholder="Team Size"
-            type="number"
-            className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4 outline-none focus:border-white transition"
-          />
-
-          <select
-            {...register("useCase")}
-            className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4 outline-none focus:border-white transition md:col-span-2"
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="mt-12 space-y-8"
           >
-            <option value="">Primary Use Case</option>
-            <option value="coding">Coding</option>
-            <option value="writing">Writing</option>
-            <option value="research">Research</option>
-            <option value="mixed">Mixed</option>
-          </select>
+            {fields.map((field, index) => {
+              const selectedTool = watch(
+                `tools.${index}.tool`
+              );
 
-          <button className="md:col-span-2 bg-white text-black py-4 rounded-2xl font-semibold hover:scale-[1.02] transition-all duration-300">
-            Generate Audit
-          </button>
-        </form>
-      </div>
-    </section>
+              return (
+                <div
+                  key={field.id}
+                  className="border border-zinc-800 rounded-3xl p-6 bg-zinc-900/40"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <select
+                      {...register(
+                        `tools.${index}.tool`
+                      )}
+                      className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4"
+                    >
+                      <option value="">
+                        Select Tool
+                      </option>
+
+                      {Object.keys(tools).map(
+                        (tool) => (
+                          <option
+                            key={tool}
+                            value={tool}
+                          >
+                            {tool}
+                          </option>
+                        )
+                      )}
+                    </select>
+
+                    <select
+                      {...register(
+                        `tools.${index}.plan`
+                      )}
+                      className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4"
+                    >
+                      <option value="">
+                        Select Plan
+                      </option>
+
+                      {selectedTool &&
+                        tools[
+                          selectedTool as keyof typeof tools
+                        ]?.map((plan) => (
+                          <option
+                            key={plan}
+                            value={plan}
+                          >
+                            {plan}
+                          </option>
+                        ))}
+                    </select>
+
+                    <input
+                      {...register(
+                        `tools.${index}.spend`
+                      )}
+                      placeholder="Monthly Spend ($)"
+                      type="number"
+                      className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4"
+                    />
+
+                    <input
+                      {...register(
+                        `tools.${index}.seats`
+                      )}
+                      placeholder="Number of Seats"
+                      type="number"
+                      className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-4"
+                    />
+                  </div>
+
+                  {fields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        remove(index)
+                      }
+                      className="mt-5 text-red-400 hover:text-red-300"
+                    >
+                      Remove Tool
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() =>
+                append({
+                  tool: "",
+                  plan: "",
+                  spend: "",
+                  seats: "",
+                })
+              }
+              className="w-full border border-dashed border-zinc-700 rounded-2xl py-4 hover:bg-zinc-900 transition"
+            >
+              + Add Another Tool
+            </button>
+
+            <button className="w-full bg-white text-black py-4 rounded-2xl font-semibold hover:scale-[1.02] transition">
+              Generate Audit
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <Results result={auditResult} />
+    </>
   );
 }

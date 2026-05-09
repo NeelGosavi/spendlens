@@ -7,6 +7,32 @@ export interface ToolInput {
 
 export interface AuditInput {
   tools: ToolInput[];
-  teamSize: number;
-  useCase: string;
+}
+
+export interface AuditRecommendation {
+  tool: string;
+
+  currentPlan: string;
+
+  recommendedPlan: string;
+
+  currentSpend: number;
+
+  optimizedSpend: number;
+
+  monthlySavings: number;
+
+  yearlySavings: number;
+
+  recommendation: string;
+
+  reason: string;
+}
+
+export interface AuditResult {
+  totalMonthlySavings: number;
+
+  totalYearlySavings: number;
+
+  recommendations: AuditRecommendation[];
 }
